@@ -339,11 +339,21 @@
 .stage-panel::-webkit-scrollbar-thumb{background:#22344a;border-radius:6px}
 .sp-h{font-family:var(--disp);font-weight:600;font-size:12px;letter-spacing:.03em;color:var(--tx-mid);text-transform:uppercase;display:flex;align-items:center;gap:8px}
 .grbl-status{font-family:var(--mono);font-size:9.5px;margin-left:auto;color:var(--green);display:flex;align-items:center;gap:5px}
+.grbl-status.red{color:var(--red)}
+.grbl-status.amber{color:var(--amber)}
 .coords{background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:12px;font-family:var(--mono)}
 .coord-row{display:flex;align-items:baseline;gap:10px;padding:5px 0}
 .coord-row .ax{color:var(--blue-bright);font-weight:700;font-size:13px;width:18px}
 .coord-row .val{font-size:16px;color:var(--tx);font-weight:500;letter-spacing:.02em}
 .coord-row .un{font-size:10px;color:var(--tx-dim);margin-left:auto}
+
+.grbl-connect{margin-top:9px;background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.grbl-connect-msg{font-size:10.5px;line-height:1.5;color:var(--tx-dim)}
+.grbl-connect-row{display:flex;gap:6px}
+.grbl-connect-row select{flex:1;min-width:0;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;color:var(--tx-mid);font-family:var(--mono);font-size:10.5px;padding:6px 7px}
+.grbl-connect-row button{background:var(--blue);border:none;border-radius:8px;color:#fff;font-family:var(--mono);font-size:10.5px;padding:6px 10px;cursor:pointer;white-space:nowrap}
+.grbl-connect-row button:disabled{opacity:.5;cursor:default}
+.grbl-connect-row button[title="Rescan ports"]{background:var(--panel-2);color:var(--tx-mid);border:1px solid var(--line);padding:6px 9px}
 
 .jog{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
 .jog button{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:12px 0;color:var(--tx);cursor:pointer;font-family:var(--mono);font-size:13px;display:flex;align-items:center;justify-content:center}

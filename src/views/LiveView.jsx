@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import HChat from '../components/HChat';
 import ToastStack from '../components/ToastStack';
 import useGrblStage from '../hooks/useGrblStage';
@@ -43,17 +43,47 @@ export default function LiveView({ onNavigate }) {
   const [zpct, setZpct] = useState(60);
   const [focusFlag, setFocusFlag] = useState({ text: 'Sharp · contrast peak locked', color: 'var(--green)' });
   const [objective, setObjective] = useState('40×');
-  const [grblStatus, setGrblStatus] = useState('GRBL Idle');
+  const [simStatus, setSimStatus] = useState('Idle');
   const [snapFlash, setSnapFlash] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [connectPort, setConnectPort] = useState('');
+  const [connecting, setConnecting] = useState(false);
 
   const feedRef = useRef(null);
   const focusTimer = useRef(null);
+  const lastErrorRef = useRef('');
 
   const displayPos = hardwareLive ? hw.pos : pos;
-  const statusText = hardwareLive ? hw.label.text : grblStatus;
-  const statusDot = hardwareLive ? hw.label.dot : '';
+  const statusInfo = hardwareLive
+    ? hw.label
+    : hw.reachable
+    ? { text: 'Hardware disconnected', dot: 'red' }
+    : { text: `${simStatus} · simulated`, dot: 'red' };
+  const statusText = statusInfo.text;
+  const statusDot = statusInfo.dot;
   const canUnlock = hardwareLive && hw.state === 'Alarm';
+
+  // Surface real backend/serial errors instead of dropping them silently.
+  useEffect(() => {
+    if (hw.error && hw.error !== lastErrorRef.current) {
+      lastErrorRef.current = hw.error;
+      toast.show(`Stage: ${hw.error}`, 4000);
+    }
+    if (!hw.error) lastErrorRef.current = '';
+  }, [hw.error, toast]);
+
+  useEffect(() => {
+    if (hw.ports.length && !connectPort) {
+      setConnectPort(hw.ports[0].device);
+    }
+  }, [hw.ports, connectPort]);
+
+  async function handleConnect() {
+    if (!connectPort) return;
+    setConnecting(true);
+    await hw.connectTo(connectPort);
+    setConnecting(false);
+  }
 
   function fmt(n) {
     return n.toFixed(3);
@@ -97,8 +127,8 @@ export default function LiveView({ onNavigate }) {
       return;
     }
     setPos({ x: 0, y: 0, z: 2.14 });
-    setGrblStatus('GRBL Home');
-    setTimeout(() => setGrblStatus('GRBL Idle'), 1200);
+    setSimStatus('Home');
+    setTimeout(() => setSimStatus('Idle'), 1200);
   }
 
   function focusZ(dir) {
@@ -267,7 +297,7 @@ export default function LiveView({ onNavigate }) {
           <div className="sp-h">
             Stage{' '}
             <span
-              className="grbl-status"
+              className={'grbl-status' + (statusDot ? ' ' + statusDot : '')}
               onClick={canUnlock ? () => hw.unlock() : undefined}
               style={canUnlock ? { cursor: 'pointer' } : undefined}
               title={canUnlock ? 'Click to unlock ($X)' : undefined}
@@ -293,6 +323,44 @@ export default function LiveView({ onNavigate }) {
               <span className="un">mm</span>
             </div>
           </div>
+
+          {!hardwareLive && (
+            <div className="grbl-connect">
+              {!hw.reachable ? (
+                <div className="grbl-connect-msg">
+                  Backend unreachable at {import.meta.env.VITE_GRBL_API || 'http://localhost:8000'} —
+                  start the bridge service (see backend/README.md). Showing simulated stage.
+                </div>
+              ) : (
+                <>
+                  <div className="grbl-connect-msg">
+                    Serial port not open. {hw.ports.length === 0 && 'No serial ports detected on this machine.'}
+                  </div>
+                  <div className="grbl-connect-row">
+                    <select
+                      value={connectPort}
+                      onChange={(e) => setConnectPort(e.target.value)}
+                      disabled={hw.ports.length === 0}
+                    >
+                      {hw.ports.length === 0 && <option value="">No ports found</option>}
+                      {hw.ports.map((p) => (
+                        <option key={p.device} value={p.device}>
+                          {p.device}
+                          {p.description && p.description !== 'n/a' ? ` — ${p.description}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                    <button onClick={() => hw.refreshPorts()} title="Rescan ports" type="button">
+                      ↻
+                    </button>
+                    <button onClick={handleConnect} disabled={!connectPort || connecting} type="button">
+                      {connecting ? 'Connecting…' : 'Connect'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         <div>

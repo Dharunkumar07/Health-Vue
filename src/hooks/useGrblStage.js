@@ -59,7 +59,38 @@ export default function useGrblStage() {
   const [pos, setPos] = useState({ x: 0, y: 0, z: 0 });
   const [state, setState] = useState(null); // raw GRBL state e.g. "Idle"
   const [error, setError] = useState('');
+  const [ports, setPorts] = useState([]);
+  const [activePort, setActivePort] = useState(GRBL_PORT);
   const lastConnectAttempt = useRef(0);
+
+  const refreshPorts = useCallback(async () => {
+    try {
+      const r = await callApi('/api/ports');
+      setPorts(r.ports || []);
+      return r.ports || [];
+    } catch {
+      return [];
+    }
+  }, []);
+
+  // Manually connect to a chosen port, bypassing the auto-connect cooldown.
+  const connectTo = useCallback(async (port, baud = GRBL_BAUD) => {
+    lastConnectAttempt.current = Date.now();
+    setActivePort(port);
+    try {
+      await callApi('/api/connect', {
+        method: 'POST',
+        body: JSON.stringify({ port, baud }),
+      });
+      setConnected(true);
+      setError('');
+      return true;
+    } catch (e) {
+      setConnected(false);
+      setError(e.message);
+      return false;
+    }
+  }, []);
 
   const refreshStatus = useCallback(async () => {
     const s = await callApi('/api/status');
@@ -87,12 +118,14 @@ export default function useGrblStage() {
           try {
             await callApi('/api/connect', {
               method: 'POST',
-              body: JSON.stringify({ port: GRBL_PORT, baud: GRBL_BAUD }),
+              body: JSON.stringify({ port: activePort, baud: GRBL_BAUD }),
             });
             setConnected(true);
+            setError('');
           } catch (e) {
             setError(e.message);
           }
+          refreshPorts();
         }
 
         if (h.connected) await refreshStatus();
@@ -110,7 +143,12 @@ export default function useGrblStage() {
       cancelled = true;
       if (timer) clearInterval(timer);
     };
-  }, [refreshStatus]);
+  }, [refreshStatus, refreshPorts, activePort]);
+
+  // Enumerate ports once up front so a picker has data before the user asks.
+  useEffect(() => {
+    refreshPorts();
+  }, [refreshPorts]);
 
   const jog = useCallback(
     async (axis, distanceMm, feed = 300) => {
@@ -147,5 +185,19 @@ export default function useGrblStage() {
 
   const label = labelFor(reachable ? state : null);
 
-  return { reachable, connected, pos, state, error, label, jog, home, unlock };
+  return {
+    reachable,
+    connected,
+    pos,
+    state,
+    error,
+    label,
+    jog,
+    home,
+    unlock,
+    ports,
+    activePort,
+    refreshPorts,
+    connectTo,
+  };
 }

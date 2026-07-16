@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import serial
+import serial.tools.list_ports
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -206,6 +207,17 @@ def health():
         "port": grbl.port,
         "baud": grbl.baud,
     }
+
+@app.get("/api/ports")
+def list_ports():
+    """Enumerate serial ports Windows/pyserial currently sees, so the UI can
+    offer a real picker instead of guessing a hardcoded COM port."""
+    ports = [
+        {"device": p.device, "description": p.description, "hwid": p.hwid}
+        for p in serial.tools.list_ports.comports()
+    ]
+    return {"ok": True, "ports": ports}
+
 
 @app.post("/api/connect")
 def connect(req: ConnectReq):
