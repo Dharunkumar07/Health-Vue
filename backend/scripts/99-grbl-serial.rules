@@ -1,0 +1,9 @@
+# Permanent fix for "Permission denied" opening /dev/ttyACM*/ttyUSB* (the
+# GRBL controller's USB-serial device). Installed by fix-serial-permissions.sh
+# into /etc/udev/rules.d/. Explicitly grants the 'dialout' group read/write on
+# any USB-serial device node — belt-and-suspenders alongside the distro's own
+# default rules, in case a minimal image (e.g. some Jetson flashes) or WSL
+# doesn't already ship one. Re-applies on every plug event, forever, with no
+# further action needed after this is installed once.
+SUBSYSTEM=="tty", KERNEL=="ttyACM[0-9]*", GROUP="dialout", MODE="0660"
+SUBSYSTEM=="tty", KERNEL=="ttyUSB[0-9]*", GROUP="dialout", MODE="0660"

@@ -347,6 +347,10 @@
 .coord-row .val{font-size:16px;color:var(--tx);font-weight:500;letter-spacing:.02em}
 .coord-row .un{font-size:10px;color:var(--tx-dim);margin-left:auto}
 
+.abort-btn{background:#c0392b;border:none;border-radius:7px;color:#fff;font-family:var(--mono);font-weight:600;font-size:9.5px;letter-spacing:.03em;padding:5px 9px;cursor:pointer}
+.abort-btn:disabled{opacity:.6;cursor:default}
+.rehome-banner{margin-top:9px;background:rgba(224,69,94,.12);border:1px solid var(--red);border-radius:11px;padding:10px 12px;font-size:10.5px;line-height:1.5;color:var(--tx-mid);display:flex;flex-direction:column;gap:8px}
+.rehome-banner button{align-self:flex-start;background:var(--red);border:none;border-radius:8px;color:#fff;font-family:var(--mono);font-size:10.5px;padding:6px 10px;cursor:pointer}
 .grbl-connect{margin-top:9px;background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
 .grbl-connect-msg{font-size:10.5px;line-height:1.5;color:var(--tx-dim)}
 .grbl-connect-row{display:flex;gap:6px}

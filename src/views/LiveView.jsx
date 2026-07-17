@@ -48,6 +48,8 @@ export default function LiveView({ onNavigate }) {
   const [chatOpen, setChatOpen] = useState(false);
   const [connectPort, setConnectPort] = useState('');
   const [connecting, setConnecting] = useState(false);
+  const [needsRehome, setNeedsRehome] = useState(false);
+  const [aborting, setAborting] = useState(false);
 
   const feedRef = useRef(null);
   const focusTimer = useRef(null);
@@ -90,14 +92,18 @@ export default function LiveView({ onNavigate }) {
   }
 
   function atLimit(axis, dir) {
-    return checkTravel(axis, displayPos[axis], dir * step).blocked;
+    return needsRehome || checkTravel(axis, displayPos[axis], dir * step).blocked;
   }
 
   function atFocusLimit(dir) {
-    return checkTravel('z', displayPos.z, dir * FOCUS_STEP_MM).blocked;
+    return needsRehome || checkTravel('z', displayPos.z, dir * FOCUS_STEP_MM).blocked;
   }
 
   function jog(axis, dir) {
+    if (needsRehome) {
+      toast.show('Position lost after abort — re-home ($H) before jogging');
+      return;
+    }
     const travel = checkTravel(axis, displayPos[axis], dir * step);
     if (travel.blocked) {
       toast.show(`${axis.toUpperCase()} axis at ${travel.bound}mm travel limit — reverse direction only`);
@@ -121,9 +127,10 @@ export default function LiveView({ onNavigate }) {
     }
   }
 
-  function homeStage() {
+  async function homeStage() {
     if (hardwareLive) {
-      hw.home();
+      const ok = await hw.home();
+      if (ok) setNeedsRehome(false);
       return;
     }
     setPos({ x: 0, y: 0, z: 2.14 });
@@ -131,7 +138,21 @@ export default function LiveView({ onNavigate }) {
     setTimeout(() => setSimStatus('Idle'), 1200);
   }
 
+  async function abortMotion() {
+    setAborting(true);
+    const ok = await hw.abort();
+    setAborting(false);
+    if (ok) {
+      setNeedsRehome(true);
+      toast.show('Aborted — position lost, re-home before jogging', 4000);
+    }
+  }
+
   function focusZ(dir) {
+    if (needsRehome) {
+      toast.show('Position lost after abort — re-home ($H) before focusing');
+      return;
+    }
     const travel = checkTravel('z', displayPos.z, dir * FOCUS_STEP_MM);
     if (travel.blocked) {
       toast.show(`Z axis at ${travel.bound}mm focus limit — reverse direction only`);
@@ -264,7 +285,7 @@ export default function LiveView({ onNavigate }) {
           <div className={'h-fab inline' + (chatOpen ? ' show' : '')} onClick={() => setChatOpen((v) => !v)}>
             <span className="cell"></span>
             <div className="ft">
-              Ask H<small>about this field</small>
+              Ask Hue<small>about this field</small>
             </div>
           </div>
           <div className={'live-hchat inline' + (chatOpen ? ' show' : '')}>
@@ -305,6 +326,17 @@ export default function LiveView({ onNavigate }) {
               <span className={'dot' + (statusDot ? ' ' + statusDot : '')}></span>
               {statusText}
             </span>
+            {hardwareLive && (
+              <button
+                className="abort-btn"
+                onClick={abortMotion}
+                disabled={aborting}
+                title="Emergency stop — interrupts homing (feed-hold can't). Requires re-home after."
+                type="button"
+              >
+                {aborting ? '…' : 'ABORT'}
+              </button>
+            )}
           </div>
           <div className="coords">
             <div className="coord-row">
@@ -323,6 +355,15 @@ export default function LiveView({ onNavigate }) {
               <span className="un">mm</span>
             </div>
           </div>
+
+          {needsRehome && (
+            <div className="rehome-banner">
+              Aborted — position lost. Re-home before jogging.
+              <button onClick={homeStage} type="button">
+                Re-home ($H)
+              </button>
+            </div>
+          )}
 
           {!hardwareLive && (
             <div className="grbl-connect">
@@ -423,7 +464,11 @@ export default function LiveView({ onNavigate }) {
           <div className="zfocus">
             <div className="zrow">
               <button onClick={() => focusZ(1)} disabled={atFocusLimit(1)}>▲ up</button>
-              <button onClick={autofocus} style={{ background: 'rgba(74,144,217,.14)', color: 'var(--blue-bright)' }}>
+              <button
+                onClick={autofocus}
+                disabled={needsRehome}
+                style={{ background: 'rgba(74,144,217,.14)', color: 'var(--blue-bright)' }}
+              >
                 Auto
               </button>
               <button onClick={() => focusZ(-1)} disabled={atFocusLimit(-1)}>▼ down</button>

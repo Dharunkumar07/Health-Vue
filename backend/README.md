@@ -25,11 +25,11 @@ FastAPI service that bridges the HealthVue frontend to a GRBL 1.1 motion control
 6. Plug in the GRBL controller (Arduino Uno/CNC Shield) via USB and find which port it enumerated as:
    - **Linux / Jetson**: run `ls /dev/tty*` before and after plugging in and compare (look for a new `/dev/ttyACM0` or `/dev/ttyUSB0`), or check `dmesg | tail` right after plugging in.
    - **Windows**: Device Manager → Ports (COM & LPT) — look for something like "USB-SERIAL CH340" or "Arduino Uno".
-   - **Linux only — serial permissions**: opening the port will fail with a permission error unless your user is in the `dialout` group:
+   - **Linux only — serial permissions**: opening the port will fail with `PermissionError: [Errno 13] Permission denied: '/dev/ttyACM0'` unless your user is in the `dialout` group (Jetson's L4T is Ubuntu-based, same fix applies). Fix this **permanently, once**:
      ```
-     sudo usermod -aG dialout $USER
+     bash backend/scripts/fix-serial-permissions.sh
      ```
-     Then **log out and back in** (group membership doesn't apply to already-open sessions).
+     This adds your user to `dialout` *and* installs a udev rule (`backend/scripts/99-grbl-serial.rules` → `/etc/udev/rules.d/`) that keeps the port group-accessible on every future reboot/replug, with no dependency on whichever distro image you're running. The only manual step left is a **one-time** log out/in (or reboot) afterward, so your current session picks up the new group — required once, not on every connect. Restart the backend after that. Script is idempotent; safe to re-run any time.
 7. Edit `backend/.env` with that port:
    ```
    GRBL_PORT=/dev/ttyACM0    # or COM3, etc. on Windows
@@ -61,8 +61,10 @@ The frontend expects this at `http://localhost:8000` by default (see the root `.
 | POST | `/api/jog` | `{axis, dx_mm, feed}` | `axis` is `"X"`/`"Y"`/`"Z"`; sends `$J=G91 G21 <axis><dx_mm> F<feed>` |
 | POST | `/api/home` | — | Sends `$H` (homing cycle); can take several seconds |
 | POST | `/api/unlock` | — | Sends `$X` (clears an alarm lock) |
-| POST | `/api/stop` | — | Realtime feed hold (`!`) |
+| POST | `/api/stop` | — | Realtime feed hold (`!`) — pauses a running **feed move**, resumable with `/api/resume`. Ignored by GRBL during a homing cycle, and not the right tool for stopping a jog — use `/api/jog-stop`. |
 | POST | `/api/resume` | — | Realtime resume (`~`) |
+| POST | `/api/jog-stop` | — | Realtime jog cancel (`0x85`) — stops an in-progress `$J=` jog cleanly, no resume needed afterward. |
+| POST | `/api/abort` | — | Ctrl-X soft reset (`0x18`) — the only thing that interrupts a homing cycle. Not resumable; position is lost and a re-home (`$H`) is required afterward. |
 | POST | `/api/setup` | `{soft_limits, max_feed_x}` | Manually re-apply the `$20`/`$110` settings with custom values |
 
 CORS is allowlisted to `localhost`/`127.0.0.1` on ports `3000` and `5173`. If you access the frontend from another device on the network, add that origin to `CORS_ORIGINS` in `main.py`.

@@ -169,8 +169,10 @@ export default function useGrblStage() {
     try {
       await callApi('/api/home', { method: 'POST', body: '{}' });
       setError('');
+      return true;
     } catch (e) {
       setError(e.message);
+      return false;
     }
   }, []);
 
@@ -180,6 +182,19 @@ export default function useGrblStage() {
       setError('');
     } catch (e) {
       setError(e.message);
+    }
+  }, []);
+
+  // Ctrl-X soft reset — the only thing that interrupts a homing cycle.
+  // Not resumable: caller must treat this as "unhomed, re-home required".
+  const abort = useCallback(async () => {
+    try {
+      await callApi('/api/abort', { method: 'POST', body: '{}' });
+      setError('');
+      return true;
+    } catch (e) {
+      setError(e.message);
+      return false;
     }
   }, []);
 
@@ -195,6 +210,7 @@ export default function useGrblStage() {
     jog,
     home,
     unlock,
+    abort,
     ports,
     activePort,
     refreshPorts,

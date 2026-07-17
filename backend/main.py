@@ -120,7 +120,7 @@ class GRBL:
                 out.append(line)
         return out
 
-    def send_line(self, line: str, read_window: float = 1.0):
+    def send_line(self, line: str, timeout: float = 2.0):
         with self.lock:
             if not self.connected():
                 raise RuntimeError("GRBL not connected")
@@ -132,17 +132,50 @@ class GRBL:
             except Exception as e:
                 raise RuntimeError(f"Write failed: {e}")
 
-            return self._read_lines(read_window)
+            out = []
+            end = time.time() + timeout
+            while time.time() < end:
+                try:
+                    resp = self.ser.readline().decode(errors="ignore").strip()
+                except Exception:
+                    resp = ""
+                if not resp:
+                    continue
+                out.append(resp)
+                if resp == "ok" or resp.startswith(("error", "ALARM", "Grbl ")):
+                    # "Grbl " = the boot banner after a reset (e.g. via abort()) —
+                    # this command's context is gone, no "ok" is coming, stop waiting.
+                    break
+            return out
 
-    def realtime(self, ch: str):
-        with self.lock:
-            if not self.connected():
-                raise RuntimeError("GRBL not connected")
-            try:
-                self.ser.write(ch.encode())  # '!' or '~'
-                self.ser.flush()
-            except Exception as e:
-                raise RuntimeError(f"Realtime write failed: {e}")
+    def realtime(self, ch):
+        """Write a single real-time byte ('!', '~', b'\\x85', ...). Deliberately
+        does NOT take self.lock — real-time bytes are designed to be injected
+        into the stream at any moment, even mid-command; queuing them behind
+        self.lock would mean an emergency stop waits on whatever's currently
+        holding the lock. Same race guard as abort(): snapshot self.ser so a
+        concurrent disconnect() surfaces as a caught exception, not a
+        write-to-None AttributeError.
+        """
+        ser = self.ser
+        if ser is None or not ser.is_open:
+            raise RuntimeError("GRBL not connected")
+        try:
+            ser.write(ch.encode() if isinstance(ch, str) else ch)
+            ser.flush()
+        except Exception as e:
+            raise RuntimeError(f"Realtime write failed: {e}")
+
+    def abort(self):
+        """Ctrl-X soft reset — the only thing GRBL honors during a homing
+        cycle (feed-hold '!' is documented to be ignored during $H). Routed
+        through realtime(), which already bypasses self.lock so this can
+        interrupt a $H call that's holding it for the homing duration; the
+        homing thread is only reading while it holds the lock, so a
+        single-byte write from here is safe alongside it (one reader + one
+        writer on a serial port is fine).
+        """
+        self.realtime(b"\x18")
 
     def status(self):
         with self.lock:
@@ -308,6 +341,10 @@ def home():
 
 @app.post("/api/stop")
 def stop():
+    """Feed hold ('!') — pauses a running g-code feed move; resume with
+    /api/resume. NOT for stopping a jog: GRBL treats jog motion differently
+    from a feed move, and a jog left on hold this way needs a resume before
+    anything else is accepted. Use /api/jog-stop to cancel a jog instead."""
     try:
         grbl.realtime("!")
         return {"ok": True}
@@ -320,6 +357,34 @@ def resume():
     try:
         grbl.realtime("~")
         return {"ok": True}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/jog-stop")
+def jog_stop():
+    """Jog cancel (0x85) — the correct real-time command for stopping an
+    in-progress $J= jog. Decelerates and flushes the remaining jog motion,
+    then returns straight to Idle — no /api/resume needed afterward, unlike
+    feed hold ('!'/'~')."""
+    try:
+        grbl.realtime(b"\x85")
+        return {"ok": True}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/abort")
+def abort():
+    """Emergency soft-reset. Interrupts homing (feed-hold '!' is ignored during
+    $H). GRBL loses its position reference and may enter Alarm afterward
+    (depends on the controller's $22 setting) — either way, the client must
+    treat this as 'unhomed, re-home required', not rely on GRBL's own state.
+    Distinct from /api/stop, which feed-holds normal moves and can be resumed
+    with ~ — this cannot be resumed, only re-homed."""
+    try:
+        grbl.abort()
+        return {"ok": True, "aborted": True, "requires_rehome": True}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
