@@ -176,6 +176,21 @@ export default function useGrblStage() {
     }
   }, []);
 
+  const disconnect = useCallback(async () => {
+    try {
+      await callApi('/api/disconnect', { method: 'POST', body: '{}' });
+      // Hold off the poll loop's auto-reconnect for one cooldown window so an
+      // intentional disconnect doesn't get silently re-opened a few ticks later.
+      lastConnectAttempt.current = Date.now();
+      setConnected(false);
+      setError('');
+      return true;
+    } catch (e) {
+      setError(e.message);
+      return false;
+    }
+  }, []);
+
   const unlock = useCallback(async () => {
     try {
       await callApi('/api/unlock', { method: 'POST', body: '{}' });
@@ -198,6 +213,20 @@ export default function useGrblStage() {
     }
   }, []);
 
+  // Jog cancel (0x85) — stops an in-progress $J= move and returns straight to
+  // Idle, no re-home required. This is what a "Stop" button should send;
+  // abort() (Ctrl-X) is the heavier, resumable-only-via-rehome emergency stop.
+  const jogStop = useCallback(async () => {
+    try {
+      await callApi('/api/jog-stop', { method: 'POST', body: '{}' });
+      setError('');
+      return true;
+    } catch (e) {
+      setError(e.message);
+      return false;
+    }
+  }, []);
+
   const label = labelFor(reachable ? state : null);
 
   return {
@@ -211,6 +240,8 @@ export default function useGrblStage() {
     home,
     unlock,
     abort,
+    jogStop,
+    disconnect,
     ports,
     activePort,
     refreshPorts,

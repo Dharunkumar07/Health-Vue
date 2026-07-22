@@ -106,7 +106,18 @@ class GRBL:
         except Exception:
             pass
 
-    def _read_lines(self, seconds: float = 0.8):
+    def _read_lines(self, seconds: float = 0.8, until=None):
+        """Read whatever arrives for up to `seconds`. Without `until` this
+        always consumes the full window — fine for a one-shot banner read,
+        but every /api/status tick called it that way with seconds=0.5 while
+        holding self.lock, so each status poll (every 700ms from the UI) sat
+        on the port for a full half-second even though GRBL answers '?'
+        within a few ms. With jog/home requests serialized behind the same
+        lock, that meant a jog click could queue behind one or more
+        in-flight status polls — the multi-second "the button feels laggy,
+        only one axis seems to respond" symptom. Pass `until` to return the
+        moment a line satisfies it instead of always draining the window.
+        """
         if not self.ser:
             return []
         out = []
@@ -118,6 +129,8 @@ class GRBL:
                 line = ""
             if line:
                 out.append(line)
+                if until and until(line):
+                    break
         return out
 
     def send_line(self, line: str, timeout: float = 2.0):
@@ -187,9 +200,25 @@ class GRBL:
             except Exception as e:
                 raise RuntimeError(f"Status query failed: {e}")
 
-            lines = self._read_lines(0.5)
+            lines = self._read_lines(0.5, until=lambda l: l.startswith("<") and l.endswith(">"))
             frames = [l for l in lines if l.startswith("<") and l.endswith(">")]
             return frames[-1] if frames else None
+
+
+def _raise_if_error(lines):
+    """GRBL reports command failures (out-of-range jog, failed homing cycle,
+    alarm lockout, ...) as 'error:N' / 'ALARM:N' lines in the response, not as
+    a transport-level failure — send_line() happily returns them alongside a
+    normal 'ok'. Callers that only check "did the HTTP call succeed" were
+    treating a rejected $J=/$H exactly the same as a real one, so the UI kept
+    reporting success while the machine silently ignored the command. Surface
+    it as a real exception so it reaches the client as an error instead of a
+    no-op."""
+    for line in lines:
+        low = line.lower()
+        if low.startswith("error") or low.startswith("alarm"):
+            raise RuntimeError(line)
+    return lines
 
 
 grbl = GRBL()
@@ -261,6 +290,9 @@ def connect(req: ConnectReq):
         setup_out = []
         setup_out += grbl.send_line("$20=0", 1.0)    # disable soft limits
         setup_out += grbl.send_line("$110=1000", 1.0)  # raise X max feed
+        setup_out += grbl.send_line("$112=1000", 1.0)  # raise Z max feed — was left at
+        # whatever low stock default the board shipped with, capping every Z jog/home
+        # to a crawl (or rejecting it outright if the requested feed exceeded it)
         # --------------------------------------------------------
 
         banner = grbl._read_lines(0.6)
@@ -324,6 +356,7 @@ def jog(req: JogReq):
     try:
         cmd = f"$J=G91 G21 {axis}{req.dx_mm:.3f} F{req.feed:.1f}"
         lines = grbl.send_line(cmd, 1.2)
+        _raise_if_error(lines)
         return {"ok": True, "sent": cmd, "response": lines}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -334,6 +367,7 @@ def home():
     """GRBL homing cycle ($H). Can take several seconds on real hardware."""
     try:
         lines = grbl.send_line("$H", 8.0)
+        _raise_if_error(lines)
         return {"ok": True, "response": lines}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

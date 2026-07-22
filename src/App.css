@@ -359,6 +359,14 @@
 .grbl-connect-row button:disabled{opacity:.5;cursor:default}
 .grbl-connect-row button[title="Rescan ports"]{background:var(--panel-2);color:var(--tx-mid);border:1px solid var(--line);padding:6px 9px}
 
+.jog-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+.jog-head .lab-small{margin-bottom:0}
+.jog-stop{display:flex;align-items:center;gap:6px;margin-right:10px}
+.jog-stop-label{font-family:var(--mono);font-size:9.5px;letter-spacing:.03em;color:var(--tx-dim);text-transform:uppercase}
+.jog-stop-btn{width:16px;height:16px;padding:0;background:#c0392b;border:none;border-radius:3px;cursor:pointer}
+.jog-stop-btn:hover{background:#d84a3b}
+.jog-stop-btn:disabled{opacity:.5;cursor:default}
+
 .jog{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
 .jog button{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:12px 0;color:var(--tx);cursor:pointer;font-family:var(--mono);font-size:13px;display:flex;align-items:center;justify-content:center}
 .jog button:hover{background:var(--elev);border-color:var(--blue)}
@@ -507,6 +515,28 @@
 .fault-btn:hover{border-color:var(--red);color:#e08090}
 .fault-btn .fi{font-family:var(--mono);font-size:9px;color:var(--red)}
 .sublog{font-family:var(--mono);font-size:10px;color:var(--tx-dim);line-height:1.7;background:var(--bg);border:1px solid var(--line-soft);border-radius:9px;padding:10px 12px;max-height:118px;overflow-y:auto;white-space:pre-wrap}
+
+#debug .dbg-wrap{display:flex;height:100%}
+.dbg-main{flex:1;display:flex;flex-direction:column;min-width:0;padding:16px 16px 16px 18px;gap:13px;overflow-y:auto}
+.dbg-dro{background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:11px 13px}
+.dbg-jogarea{display:flex;align-items:flex-start}
+.dbg-xy{width:236px;flex:0 0 auto;margin-right:26px}
+.dbg-z{width:84px;flex:0 0 auto;padding-left:26px;border-left:1px solid var(--line-soft)}
+.jog-head .jog-stop{margin-right:0}
+.dbg-zpad{display:flex;flex-direction:column;gap:7px;min-height:134px}
+.dbg-zpad button{flex:1;width:100%;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;color:var(--tx);cursor:pointer;font-family:var(--mono);font-size:11px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.dbg-zpad button:hover{background:var(--elev);border-color:var(--blue)}
+.dbg-zpad button:active{background:var(--blue);border-color:var(--blue)}
+.dbg-zpad button svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2}
+.dbg-zpad button:disabled{opacity:.35;cursor:not-allowed;background:var(--panel-2);border-color:var(--line)}
+
+.dbg-side{width:300px;flex:0 0 300px;border-left:1px solid var(--line-soft);background:var(--panel);padding:15px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+.dbg-side::-webkit-scrollbar{width:6px}.dbg-side::-webkit-scrollbar-thumb{background:#22344a;border-radius:6px}
+.dbg-field-row{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.dbg-field-row label{flex:0 0 92px;font-size:10.5px;color:var(--tx-mid);font-family:var(--mono)}
+.dbg-field-row input[type=number]{flex:1;min-width:0;background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--tx);font-family:var(--mono);font-size:12px;padding:7px 8px;text-align:right}
+.dbg-field-row button{flex:0 0 104px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;color:var(--tx-mid);font-family:var(--mono);font-size:10px;padding:8px 0;cursor:pointer}
+.dbg-field-row button:hover{background:var(--elev);color:var(--tx)}
 
 @media (max-width:820px){
   .home-grid{grid-template-columns:1fr}

@@ -50,6 +50,7 @@ export default function LiveView({ onNavigate }) {
   const [connecting, setConnecting] = useState(false);
   const [needsRehome, setNeedsRehome] = useState(false);
   const [aborting, setAborting] = useState(false);
+  const [stopping, setStopping] = useState(false);
 
   const feedRef = useRef(null);
   const focusTimer = useRef(null);
@@ -91,12 +92,22 @@ export default function LiveView({ onNavigate }) {
     return n.toFixed(3);
   }
 
+  // TRAVEL_LIMITS is a guessed placeholder range for the simulated stage (see
+  // comment above) — it doesn't reflect any real stage's actual travel span.
+  // Gating real hardware jogs against it silently disabled buttons (no click
+  // ever fires) whenever the real machine's position fell outside the guess,
+  // e.g. Z. On real hardware, trust GRBL itself (soft limits are disabled on
+  // connect, and /api/jog now surfaces genuine GRBL rejections as errors).
   function atLimit(axis, dir) {
-    return needsRehome || checkTravel(axis, displayPos[axis], dir * step).blocked;
+    if (needsRehome) return true;
+    if (hardwareLive) return false;
+    return checkTravel(axis, displayPos[axis], dir * step).blocked;
   }
 
   function atFocusLimit(dir) {
-    return needsRehome || checkTravel('z', displayPos.z, dir * FOCUS_STEP_MM).blocked;
+    if (needsRehome) return true;
+    if (hardwareLive) return false;
+    return checkTravel('z', displayPos.z, dir * FOCUS_STEP_MM).blocked;
   }
 
   function jog(axis, dir) {
@@ -104,15 +115,15 @@ export default function LiveView({ onNavigate }) {
       toast.show('Position lost after abort — re-home ($H) before jogging');
       return;
     }
-    const travel = checkTravel(axis, displayPos[axis], dir * step);
-    if (travel.blocked) {
-      toast.show(`${axis.toUpperCase()} axis at ${travel.bound}mm travel limit — reverse direction only`);
-      return;
-    }
 
     if (hardwareLive) {
       hw.jog(axis.toUpperCase(), dir * step, JOG_FEED);
     } else {
+      const travel = checkTravel(axis, displayPos[axis], dir * step);
+      if (travel.blocked) {
+        toast.show(`${axis.toUpperCase()} axis at ${travel.bound}mm travel limit — reverse direction only`);
+        return;
+      }
       setPos((p) => ({ ...p, [axis]: travel.next }));
     }
     const feed = feedRef.current;
@@ -148,25 +159,33 @@ export default function LiveView({ onNavigate }) {
     }
   }
 
+  // Lighter than abortMotion: cancels an in-progress jog and returns straight
+  // to Idle, no re-home needed — this is what the Stop button next to the jog
+  // pad sends. abortMotion (Ctrl-X) stays reserved for the full ABORT control.
+  async function stopJog() {
+    setStopping(true);
+    const ok = await hw.jogStop();
+    setStopping(false);
+    if (!ok) toast.show('Stop failed — see error above', 4000);
+  }
+
   function focusZ(dir) {
     if (needsRehome) {
       toast.show('Position lost after abort — re-home ($H) before focusing');
       return;
     }
-    const travel = checkTravel('z', displayPos.z, dir * FOCUS_STEP_MM);
-    if (travel.blocked) {
-      toast.show(`Z axis at ${travel.bound}mm focus limit — reverse direction only`);
-      return;
-    }
 
     if (hardwareLive) {
       hw.jog('Z', dir * FOCUS_STEP_MM, FOCUS_FEED);
+    } else {
+      const travel = checkTravel('z', displayPos.z, dir * FOCUS_STEP_MM);
+      if (travel.blocked) {
+        toast.show(`Z axis at ${travel.bound}mm focus limit — reverse direction only`);
+        return;
+      }
+      setPos((p) => ({ ...p, z: travel.next }));
     }
-    setZpct((prev) => {
-      const next = Math.min(100, Math.max(0, prev + dir * 6));
-      if (!hardwareLive) setPos((p) => ({ ...p, z: travel.next }));
-      return next;
-    });
+    setZpct((prev) => Math.min(100, Math.max(0, prev + dir * 6)));
     setFocusFlag({ text: 'Adjusting…', color: 'var(--amber)' });
     clearTimeout(focusTimer.current);
     focusTimer.current = setTimeout(() => {
@@ -421,7 +440,19 @@ export default function LiveView({ onNavigate }) {
         </div>
 
         <div>
-          <div className="lab-small" style={{ marginBottom: '7px' }}>XY jog</div>
+          <div className="jog-head">
+            <div className="lab-small">XY jog</div>
+            <div className="jog-stop">
+              <span className="jog-stop-label">Stop</span>
+              <button
+                className="jog-stop-btn"
+                onClick={stopJog}
+                disabled={stopping}
+                title="Stop — cancels the current jog move. No re-home needed."
+                type="button"
+              ></button>
+            </div>
+          </div>
           <div className="jog">
             <button className="mid"></button>
             <button onClick={() => jog('y', 1)} disabled={atLimit('y', 1)}>
@@ -477,17 +508,6 @@ export default function LiveView({ onNavigate }) {
               <div className="zbar-fill" style={{ width: zpct + '%' }}></div>
             </div>
             <div className="focus-flag" style={{ color: focusFlag.color }}>{focusFlag.text}</div>
-          </div>
-        </div>
-
-        <div>
-          <div className="lab-small" style={{ marginBottom: '7px' }}>Objective</div>
-          <div className="obj-seg">
-            {['4×', '10×', '40×', '100×'].map((o) => (
-              <button key={o} className={objective === o ? 'on' : ''} onClick={() => setObjective(o)}>
-                {o}
-              </button>
-            ))}
           </div>
         </div>
       </div>

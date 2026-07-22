@@ -9,6 +9,7 @@ import ViewerView from './views/ViewerView';
 import LiveView from './views/LiveView';
 import ReportView from './views/ReportView';
 import ConsoleView from './views/ConsoleView';
+import DebugView from './views/DebugView';
 
 const TITLES = {
   home: 'Home',
@@ -17,6 +18,7 @@ const TITLES = {
   viewer: 'Slide Viewer',
   report: 'Report Editor',
   console: 'Developer Console',
+  debug: 'Debug',
 };
 const CRUMBS = {
   home: 'Bench 01 · Dr. K. Bairavi',
@@ -25,6 +27,7 @@ const CRUMBS = {
   viewer: 'PBS-2261 · Giemsa',
   report: 'PBS-2261 · unsigned',
   console: 'motion FW · field debug',
+  debug: 'GRBL · raw axis test',
 };
 const NAV_GROUP = { viewer: 'repository', report: 'report' };
 
@@ -68,6 +71,9 @@ function App() {
             </div>
             <div className={'view' + (view === 'console' ? ' active' : '')} id="console">
               <ConsoleView active={view === 'console'} />
+            </div>
+            <div className={'view' + (view === 'debug' ? ' active' : '')} id="debug">
+              <DebugView />
             </div>
           </div>
         </div>

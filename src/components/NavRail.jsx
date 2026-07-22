@@ -60,6 +60,16 @@ export default function NavRail({ activeGroup, onNavigate }) {
       ))}
       <div className="spacer"></div>
       <button
+        className={'navbtn dev' + (activeGroup === 'debug' ? ' active' : '')}
+        onClick={() => onNavigate('debug')}
+      >
+        <svg viewBox="0 0 24 24">
+          <path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" />
+          <circle cx="12" cy="12" r="4" />
+        </svg>
+        Debug
+      </button>
+      <button
         className={'navbtn dev' + (activeGroup === 'console' ? ' active' : '')}
         onClick={() => onNavigate('console')}
       >
