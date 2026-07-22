@@ -50,15 +50,6 @@ FastAPI service that bridges the HealthVue frontend to a GRBL 1.1 motion control
 
 The frontend expects this at `http://localhost:8000` by default (see the root `.env`'s `VITE_GRBL_API`).
 
-## Running the tests
-
-No real GRBL hardware needed — `tests/test_main.py` swaps in a fake serial port that plays back scripted GRBL responses, so it exercises the actual FastAPI endpoints (jog for all three axes, home, jog-stop, abort, connect's setup commands, and the status-poll latency behavior) without a board attached.
-
-```
-pip install -r requirements-dev.txt
-pytest
-```
-
 ## API
 
 | Method | Path | Body | Notes |

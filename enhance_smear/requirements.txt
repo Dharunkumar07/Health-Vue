@@ -1,0 +1,22 @@
+# requirements.txt for enhance_smear.py
+# Install with: pip install -r requirements.txt
+
+numpy>=1.24.0
+scipy>=1.10.0
+opencv-contrib-python>=4.8.0.74
+cellpose>=3.0.0
+torch>=2.0.0
+
+# --- Notes ---
+# 1. opencv-contrib-python is required (NOT plain opencv-python) — cellpose
+#    and some cv2 ops used here need the contrib modules.
+# 2. torch is required by cellpose. The line above installs the default
+#    (often CPU) build. For GPU acceleration (recommended — this script
+#    calls CellposeModel(gpu=True)), install the CUDA build matching your
+#    system BEFORE running this file, e.g.:
+#      pip install torch --index-url https://download.pytorch.org/whl/cu121
+#    Then run: pip install -r requirements.txt
+# 3. Optional (GPU array acceleration, not required by this script directly
+#    but commonly used alongside it):
+#      cupy-cuda12x     # for CUDA 12.x
+#      cupy-cuda11x     # for CUDA 11.x

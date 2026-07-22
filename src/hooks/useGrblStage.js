@@ -153,13 +153,20 @@ export default function useGrblStage() {
   const jog = useCallback(
     async (axis, distanceMm, feed = 300) => {
       try {
-        await callApi('/api/jog', {
+        // Returns GRBL's actual reply ({sent, response}) rather than just a
+        // boolean — GRBL has no closed-loop position feedback, so an axis
+        // that physically can't turn (dead driver, unplugged motor) still
+        // answers "ok". Seeing the exact command + reply is what tells that
+        // case apart from a real rejection (error:/ALARM:), which now throws.
+        const r = await callApi('/api/jog', {
           method: 'POST',
           body: JSON.stringify({ axis, dx_mm: distanceMm, feed }),
         });
         setError('');
+        return r;
       } catch (e) {
         setError(e.message);
+        return null;
       }
     },
     []

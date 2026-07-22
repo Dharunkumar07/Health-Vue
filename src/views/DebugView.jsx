@@ -22,6 +22,7 @@ export default function DebugView() {
   const [connectPort, setConnectPort] = useState('');
   const [connecting, setConnecting] = useState(false);
   const [busy, setBusy] = useState('');
+  const [lastJog, setLastJog] = useState(null);
 
   function fmt(n) {
     return (n ?? 0).toFixed(3);
@@ -44,7 +45,14 @@ export default function DebugView() {
     const stepDisplay = num(axis === 'z' ? stepZ : stepXY, STEP_MIN);
     const distanceMm = toMm(stepDisplay) * dir;
     const feedMm = toMm(num(feed, 1));
-    await hw.jog(axis.toUpperCase(), distanceMm, feedMm);
+    const r = await hw.jog(axis.toUpperCase(), distanceMm, feedMm);
+    // GRBL has no closed-loop position feedback — it says "ok" whether the
+    // motor actually turned or not. This is the only way to tell "GRBL
+    // accepted it but the axis didn't move" (driver/wiring/mechanical) apart
+    // from a real rejection (which throws and shows up as a toast instead).
+    if (r) {
+      setLastJog({ axis: axis.toUpperCase(), sent: r.sent, response: (r.response || []).join(' | ') || '(no reply)' });
+    }
   }
 
   async function runAction(name, fn) {
@@ -292,6 +300,13 @@ export default function DebugView() {
           {'XY step: ' + toMm(num(stepXY, STEP_MIN)).toFixed(3) + ' mm/click\n' +
             'Z step: ' + toMm(num(stepZ, STEP_MIN)).toFixed(3) + ' mm/click\n' +
             'Feed: ' + toMm(num(feed, 1)).toFixed(1) + ' mm/min'}
+        </div>
+
+        <div className="cs-h" style={{ marginTop: '10px', marginBottom: '9px' }}>Last jog reply</div>
+        <div className="sublog">
+          {lastJog
+            ? 'Axis: ' + lastJog.axis + '\nCommand: ' + lastJog.sent + '\nGRBL replied: ' + lastJog.response
+            : 'Click an X/Y/Z jog button to see the exact command and GRBL’s raw reply here — GRBL says "ok" whether the motor actually turned or not, so this is how to tell a real rejection apart from an axis that just isn’t moving.'}
         </div>
 
         <div className="cs-h" style={{ marginTop: '10px', marginBottom: '9px' }}>Notes</div>

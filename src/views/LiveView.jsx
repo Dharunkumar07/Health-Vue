@@ -12,9 +12,7 @@ function formatElapsed(sec) {
   const s = Math.floor(sec % 60).toString().padStart(2, '0');
   return `${m}:${s}`;
 }
-const JOG_FEED = 400; // mm/min for XY jog
-const FOCUS_FEED = 200; // mm/min for Z focus
-const FOCUS_STEP_MM = 0.05; // mm per focus tap, independent of the XY step size
+const JOG_FEED = 400; // mm/min for XY and Z jog
 
 // Software travel limits per axis, [min, max] mm. Matches the placeholder
 // $130/$131/$132 travel figures already used in ConsoleView's simulated
@@ -104,10 +102,16 @@ export default function LiveView({ onNavigate }) {
     return checkTravel(axis, displayPos[axis], dir * step).blocked;
   }
 
+  // Was hardcoded to a separate 0.05mm/200mm-per-min pair, independent of the
+  // XY step selector — that move works out to ~15ms of actual motion, ~20x
+  // shorter/smaller than Debug's proven-working 1mm@500mm/min default. On
+  // real hardware that's short enough to not visibly move the stage at all.
+  // Reuse the same user-adjustable `step`/JOG_FEED the XY pad already uses,
+  // which is what verified as working on the Debug page.
   function atFocusLimit(dir) {
     if (needsRehome) return true;
     if (hardwareLive) return false;
-    return checkTravel('z', displayPos.z, dir * FOCUS_STEP_MM).blocked;
+    return checkTravel('z', displayPos.z, dir * step).blocked;
   }
 
   function jog(axis, dir) {
@@ -176,9 +180,9 @@ export default function LiveView({ onNavigate }) {
     }
 
     if (hardwareLive) {
-      hw.jog('Z', dir * FOCUS_STEP_MM, FOCUS_FEED);
+      hw.jog('Z', dir * step, JOG_FEED);
     } else {
-      const travel = checkTravel('z', displayPos.z, dir * FOCUS_STEP_MM);
+      const travel = checkTravel('z', displayPos.z, dir * step);
       if (travel.blocked) {
         toast.show(`Z axis at ${travel.bound}mm focus limit — reverse direction only`);
         return;

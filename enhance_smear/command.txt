@@ -1,0 +1,43 @@
+=========================================================
+ SETUP + RUN COMMANDS FOR enhance_smear.py
+=========================================================
+
+--- 1. (Recommended) create a clean environment ---
+python3 -m venv venv
+source venv/bin/activate          # Windows: venv\Scripts\activate
+
+--- 2. Install GPU-enabled PyTorch FIRST (recommended) ---
+# Pick the line matching your CUDA version. Check with: nvidia-smi
+# CUDA 12.1:
+pip install torch --index-url https://download.pytorch.org/whl/cu121
+# CUDA 11.8:
+pip install torch --index-url https://download.pytorch.org/whl/cu118
+# No GPU / CPU only:
+pip install torch
+
+--- 3. Install remaining dependencies ---
+pip install -r requirements.txt
+
+--- 4. Verify GPU is visible to torch (optional but recommended) ---
+python3 -c "import torch; print('CUDA available:', torch.cuda.is_available())"
+
+--- 5. Run the script ---
+# Basic run with one colour reference:
+python3 enhance_smear.py input.png -r reference.png -o result.jpeg
+
+# With two averaged references:
+python3 enhance_smear.py input.png -r ref1.png -r ref2.png -o result.jpeg
+
+# Without any reference (auto brighten/levels stretch):
+python3 enhance_smear.py input.png -o result.jpeg
+
+# Faster (lower resolution CellPose pass):
+python3 enhance_smear.py input.png -r ref.png -d 640 -o result.jpeg
+
+# With extra saturation boost and custom JPEG quality:
+python3 enhance_smear.py input.png -r ref.png -s 1.2 -q 90 -o result.jpeg
+
+=========================================================
+ QUICK ONE-LINE INSTALL (if GPU/CUDA already configured)
+=========================================================
+pip install -r requirements.txt && python3 enhance_smear.py input.png -r reference.png -o result.jpeg
