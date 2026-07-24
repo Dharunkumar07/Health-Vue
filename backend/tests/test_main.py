@@ -149,6 +149,7 @@ def test_connect_raises_x_and_z_max_feed(client, monkeypatch):
     monkeypatch.setattr(backend_main.serial, "Serial", lambda **kwargs: fake)
     monkeypatch.setattr(backend_main.time, "sleep", lambda s: None)
     backend_main.grbl.ser = None
+    
     try:
         r = client.post("/api/connect", json={"port": "TEST", "baud": 115200})
         assert r.status_code == 200

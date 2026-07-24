@@ -1,0 +1,50 @@
+
+
+
+# Delete everything and start fresh
+rm -f hue_masks/*.npz
+
+# Pick any slide as the new default
+curl "http://127.0.0.1:8200/warmup/g?input=/mnt/onix/blood/bd/g.png"
+curl -X POST "http://127.0.0.1:8200/set_default?mask_path=hue_masks/g_masks.npz"
+
+# Test — should be ~0.05s
+curl "http://127.0.0.1:8200/enhance_file?input=/mnt/onix/blood/bd/2.png&output=2_result.jpeg&saturation=2.0" -w "Time: %{time_total}s\n"
+
+
+
+# 1. One-time setup — warmup your reference slide
+curl "http://127.0.0.1:8200/warmup/g?input=/mnt/onix/blood/bd/g.png"
+# wait 12-16s
+
+# 2. Set as default
+curl -X POST "http://127.0.0.1:8200/set_default?mask_path=hue_masks/g_masks.npz"
+
+# 3. Live — every slide uses DEFAULT instantly
+curl "http://127.0.0.1:8200/enhance_file?input=/mnt/onix/blood/bd/2.png&output=2_result.jpeg&saturation=2.0"
+curl "http://127.0.0.1:8200/enhance_file?input=/mnt/onix/blood/bd/9.png&output=9_result.jpeg&saturation=2.0"
+# all ~0.05-0.10s ✓
+
+
+
+
+pkill -f hue.py
+
+# Server start (once)
+python3 hue.py
+
+
+
+# Any slide — instant
+curl "http://127.0.0.1:8200/enhance_file?input=/path/to/slide.png&output=/path/to/result.jpeg&saturation=2.0"
+
+
+
+The g_masks.npz is your default mask permanently saved. Even after restarting hue.py, add this to your start command:
+
+
+HUE_DEFAULT_MASK=hue_masks/DEFAULT_masks.npz python3 hue.py
+
+
+
+
