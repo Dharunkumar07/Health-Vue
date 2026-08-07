@@ -10,7 +10,7 @@ Synthetic Wright–Giemsa rendering of peripheral blood smear images.
 | **Everything else** | pure OpenCV / NumPy colour math |
 
 ```bash
-python3 cellpose.py input.png -r ref1.png -r ref2.png -s 1.25 -o result.jpeg
+python3  cellpose.py input.png -r ref1.png -r ref2.png -s 1.25 -o result.jpeg
 ```
 
 ---
