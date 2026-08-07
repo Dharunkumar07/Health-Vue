@@ -27,7 +27,7 @@ STEP 2   CELLPOSE SEGMENTATION
                        |
                        v
 STEP 3   BUILD CELL MASKS
-         fit ellipse per label
+         fit ellipse per label 
          -> fill_mask / border_mask / tiny_mask
          -> fill_safe = fill_mask dilated 3px
                        |
