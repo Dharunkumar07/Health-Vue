@@ -1,6 +1,6 @@
-================================================================================
+
 BLOOD SMEAR ENHANCEMENT - CELLPOSE PIPELINE
-================================================================================
+============================================
 
 Synthetic Wright-Giemsa rendering of peripheral blood smear images.
 
@@ -11,9 +11,9 @@ OUTPUT: white background, pale-red RBCs, purple WBC nucleus with pale
 Command : python3 cellpose.py input.png -r ref1.png [-r ref2.png] -s 1.25 -o result.jpeg
 
 
-================================================================================
+
 PIPELINE FLOW
-================================================================================
+===============
 
               INPUT  (raw BGR smear image)
                        |
@@ -104,9 +104,9 @@ STEP 20  PERINUCLEAR CYTOPLASM RIM
               OUTPUT  (enhanced smear image)
 
 
-================================================================================
+================
 CLI OPTIONS
-================================================================================
+================
 
   input               source smear image
   -o, --output        output path            (default <input>_cp.jpeg)
@@ -116,9 +116,9 @@ CLI OPTIONS
   -s, --saturation    global saturation multiplier  (default 1.0)
 
 
-================================================================================
+===========================
 WHY THE ORDERING MATTERS
-================================================================================
+============================
 
 PLATELETS ARE DETECTED BEFORE COLOUR MATCHING (Step 4)
   Post-match-only detection caused a feedback loop on lavender slides: loose
@@ -152,9 +152,9 @@ THE WBC IS RESTORED FROM THE ORIGINAL IMAGE (Step 19)
   Only the perinuclear rim is synthesised afterwards.
 
 
-================================================================================
+===============
 TUNING KNOBS
-================================================================================
+===============
 
   platelet size cutoff       build_masks
                              tiny_thr = max(80, 0.30 * median_area)
@@ -183,9 +183,9 @@ TUNING KNOBS
                              reach 25, hue 133, sat_mul 0.35, lighten 0.30
 
 
-================================================================================
+=============================
 NOTES ON THE CURRENT FILE
-================================================================================
+==============================
 
   * The module docstring lists an 11-step order that predates the post-match
     platelet and stray-violet stages. THE CODE IS THE SOURCE OF TRUTH.
@@ -205,9 +205,9 @@ NOTES ON THE CURRENT FILE
     process pays the load cost once.
 
 
-================================================================================
+==============
 DEPENDENCIES
-================================================================================
+===============
 
   opencv-python
   numpy
