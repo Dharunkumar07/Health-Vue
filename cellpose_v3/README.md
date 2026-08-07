@@ -104,7 +104,7 @@ STEP 20  PERINUCLEAR CYTOPLASM RIM
               OUTPUT  (enhanced smear image)
 
 
-================
+
 CLI OPTIONS
 ================
 
@@ -116,7 +116,7 @@ CLI OPTIONS
   -s, --saturation    global saturation multiplier  (default 1.0)
 
 
-===========================
+
 WHY THE ORDERING MATTERS
 ============================
 
@@ -152,7 +152,7 @@ THE WBC IS RESTORED FROM THE ORIGINAL IMAGE (Step 19)
   Only the perinuclear rim is synthesised afterwards.
 
 
-===============
+
 TUNING KNOBS
 ===============
 
@@ -183,7 +183,7 @@ TUNING KNOBS
                              reach 25, hue 133, sat_mul 0.35, lighten 0.30
 
 
-=============================
+
 NOTES ON THE CURRENT FILE
 ==============================
 
@@ -205,7 +205,7 @@ NOTES ON THE CURRENT FILE
     process pays the load cost once.
 
 
-==============
+
 DEPENDENCIES
 ===============
 
