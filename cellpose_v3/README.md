@@ -1,4 +1,3 @@
-
 # Blood Smear Enhancement — CellPose Pipeline
 
 Synthetic Wright–Giemsa rendering of peripheral blood smear images.
@@ -231,4 +230,3 @@ scipy
 cellpose        # model_type='cyto3', gpu=True
 torch           # CUDA build matching your device
 ```
-
